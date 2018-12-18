@@ -32,14 +32,14 @@ describe('Sequelize schema editor plugin', () => {
         expect(found).toEqual([expect.objectContaining({id: 1, foo: 'bla'})])
     })
 
-    it('should be able to add tables', async () => {
+    it('should be able to add fields', async () => {
         const backend = new SequelizeStorageBackend({sequelizeConfig: 'sqlite://'})
         const storageManager = new StorageManager({backend: backend as any})
         storageManager.backend.use(new SchemaEditorSequelizeBackendPlugin() as any)
         storageManager.registry.registerCollection('test', TEST_COLLECTION_DEFINITION)
         await storageManager.finishInitialization()
         await storageManager.backend.migrate()
-            
+        
         await storageManager.backend.operation('alterSchema', {operations: [
             {type: 'addField', collection: 'test', field: 'bar', definition: {type: 'string'}}
         ]})
@@ -56,5 +56,23 @@ describe('Sequelize schema editor plugin', () => {
         await testSequelizeModel.create({foo: 'bla', bar: 'spam'})
         const found = await testSequelizeModel.findAll({where: {foo: 'bla'}})
         expect(found).toEqual([expect.objectContaining({id: 1, foo: 'bla', bar: 'spam'})])
+    })
+
+    it('should be able to remove fields', async () => {
+        const backend = new SequelizeStorageBackend({sequelizeConfig: 'sqlite://'})
+        const storageManager = new StorageManager({backend: backend as any})
+        storageManager.backend.use(new SchemaEditorSequelizeBackendPlugin() as any)
+        storageManager.registry.registerCollection('test', TEST_COLLECTION_DEFINITION)
+        await storageManager.finishInitialization()
+        await storageManager.backend.migrate()
+        
+        await storageManager.backend.operation('alterSchema', {operations: [
+            {type: 'removeField', collection: 'test', field: 'foo'}
+        ]})
+        const testSequelizeModel = backend.sequelize['default'].define(
+            'test', collectionToSequelizeModel({definition: TEST_COLLECTION_DEFINITION}),
+            {timestamps: false}
+        )
+        await expect(testSequelizeModel.create({foo: 'bla'})).rejects.toThrow('SQLITE_ERROR: table tests has no column named foo')
     })
 })
