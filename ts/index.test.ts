@@ -41,21 +41,38 @@ describe('Sequelize schema editor plugin', () => {
         await storageManager.backend.migrate()
         
         await storageManager.backend.operation('alterSchema', {operations: [
-            {type: 'addField', collection: 'test', field: 'bar', definition: {type: 'string'}}
+            {type: 'prepareAddField', collection: 'test', field: 'bar', definition: {type: 'string'}}
         ]})
         const testSequelizeModel = backend.sequelize['default'].define(
             'test', collectionToSequelizeModel({definition: {
                 ...TEST_COLLECTION_DEFINITION,
                 fields: {
                     ...TEST_COLLECTION_DEFINITION.fields,
-                    bar: {type: 'string'},
+                    bar: {type: 'string', optional: true},
                 }
             } as CollectionDefinition}),
             {timestamps: false}
         )
+
+        await testSequelizeModel.create({foo: 'bla', bar: null})
+        expect(await testSequelizeModel.findAll({where: {foo: 'bla'}})).toEqual([
+            expect.objectContaining({id: 1, foo: 'bla', bar: null})
+        ])
+
         await testSequelizeModel.create({foo: 'bla', bar: 'spam'})
-        const found = await testSequelizeModel.findAll({where: {foo: 'bla'}})
-        expect(found).toEqual([expect.objectContaining({id: 1, foo: 'bla', bar: 'spam'})])
+        expect(await testSequelizeModel.findAll({where: {foo: 'bla'}})).toEqual([
+            expect.objectContaining({id: 1, foo: 'bla', bar: null}),
+            expect.objectContaining({id: 2, foo: 'bla', bar: 'spam'}),
+        ])
+
+        await expect(storageManager.backend.operation('alterSchema', {operations: [
+            {type: 'finalizeAddField', collection: 'test', field: 'bar', definition: {type: 'string'}}
+        ]})).rejects.toThrow('Validation error')
+        await testSequelizeModel.update({bar: 'eggs'}, {where: {id: 1}})
+        await storageManager.backend.operation('alterSchema', {operations: [
+            {type: 'finalizeAddField', collection: 'test', field: 'bar', definition: {type: 'string'}}
+        ]})
+        expect(testSequelizeModel.create({foo: 'bla', bar: null})).rejects.toThrow('Validation error')
     })
 
     it('should be able to remove fields', async () => {

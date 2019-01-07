@@ -16,11 +16,28 @@ export async function addCollection(
     await sequelize.getQueryInterface().createTable(pluralize(collection), collectionToSequelizeModel({definition}))
 }
 
-export async function addField(
+export async function prepareAddField(
     {sequelize, collection, field, definition} : 
     {sequelize : Sequelize, collection : string, field : string, definition : CollectionField})
 {
-    await sequelize.getQueryInterface().addColumn(pluralize(collection), field, fieldToSequelizeField(definition))
+    await sequelize.getQueryInterface().addColumn(pluralize(collection), field, fieldToSequelizeField({
+        ...definition,
+        optional: true
+    }))
+}
+
+export async function finalizeAddField(
+    {sequelize, collection, field, definition} : 
+    {sequelize : Sequelize, collection : string, field : string, definition : CollectionField})
+{
+    if (definition.optional) {
+        return
+    }
+
+    await sequelize.getQueryInterface().changeColumn(pluralize(collection), field, fieldToSequelizeField({
+        ...definition,
+        optional: false
+    }))
 }
 
 export async function removeField(
@@ -32,6 +49,7 @@ export async function removeField(
 
 export const _OPERATIONS = {
     addCollection,
-    addField,
+    prepareAddField,
+    finalizeAddField,
     removeField,
 }

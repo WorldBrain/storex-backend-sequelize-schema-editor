@@ -1,5 +1,5 @@
 {
-  "name": "storex-backend-sequelize-schema-editor",
+  "name": "@worldbrain-io/storex-backend-sequelize-schema-editor",
   "version": "0.0.1",
   "description": "Storex Sequelize backend - alterSchema operation",
   "main": "lib/index.js",
