@@ -5,6 +5,11 @@ import { collectionToSequelizeModel, fieldToSequelizeField } from "storex-backen
 
 export async function alterSchema(sequelize : Sequelize, operations : any[]) {
     for (const operation of operations) {
+        if (!_OPERATIONS[operation.type]) {
+            throw new Error(`Unknown alterSchema operation: ${operation.type}`)
+        }
+    }
+    for (const operation of operations) {
         await _OPERATIONS[operation.type]({sequelize, ...operation})
     }
 }

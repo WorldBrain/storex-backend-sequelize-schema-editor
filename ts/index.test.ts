@@ -35,7 +35,7 @@ describe('Sequelize schema editor plugin', () => {
     it('should be able to add fields', async () => {
         const backend = new SequelizeStorageBackend({sequelizeConfig: 'sqlite://'})
         const storageManager = new StorageManager({backend: backend as any})
-        storageManager.backend.use(new SchemaEditorSequelizeBackendPlugin() as any)
+        storageManager.backend.use(new SchemaEditorSequelizeBackendPlugin())
         storageManager.registry.registerCollection('test', TEST_COLLECTION_DEFINITION)
         await storageManager.finishInitialization()
         await storageManager.backend.migrate()
